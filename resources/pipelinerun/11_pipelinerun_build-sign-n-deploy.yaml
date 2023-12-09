@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: build-sign-n-deploy
+  namespace: demo-secure-images
+  labels:
+    tekton.dev/pipeline: build-sign-n-deploy
+spec:
+  params:
+    - name: deployment-name
+      value: tetris-4-k8s
+    - name: git-url
+      value: 'https://github.com/openshift/pipelines-vote-api.git'
+    - name: git-revision
+      value: master
+    - name: IMAGE
+      value: 'image-registry.openshift-image-registry.svc:5000/demo-secure-images/pipelines-vote-api:v1'
+    - name: namespace
+      value: demo-secure-images
+  pipelineRef:
+    name: build-sign-n-deploy
+  serviceAccountName: pipeline
+  timeout: 0h30m0s
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: source-pvc

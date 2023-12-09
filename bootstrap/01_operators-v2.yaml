@@ -1,0 +1,56 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  name: supply-chain-security
+  namespace: openshift-gitops
+spec:
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  destinations:
+  - namespace: '*'
+    server: '*'
+  sourceRepos:
+  - '*'
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: operators
+  namespace: openshift-gitops
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: supply-chain-security
+  sources:
+      - repoURL: https://github.com/Everything-is-Code/advance-cluster-management.git
+        targetRevision: HEAD
+        path: bootstrap
+        directory:
+          exclude: 'kustomization.yaml'
+      - repoURL: https://github.com/Everything-is-Code/quay.git
+        path: bootstrap
+        directory:
+          exclude: 'kustomization.yaml'
+        targetRevision: HEAD
+      - repoURL: https://github.com/Everything-is-Code/advance-cluster-security.git
+        path: bootstrap
+        directory:
+          exclude: 'kustomization.yaml'       
+        targetRevision: HEAD
+      - repoURL: https://github.com/Everything-is-Code/openshift-pipelines.git
+        path: bootstrap
+        directory:
+          exclude: 'kustomization.yaml'      
+        targetRevision: HEAD        
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

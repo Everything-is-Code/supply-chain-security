@@ -1,0 +1,51 @@
+{
+    "policies": [
+        {
+            "id": "21343c5c-84db-42df-a404-cfaa3e438b0e",
+            "name": "Image_signature_verificator",
+            "description": "Alert and Block Images when they have not been signed.",
+            "rationale": "",
+            "remediation": "Images must be signed.",
+            "disabled": false,
+            "categories": [
+                "Security Best Practices"Q
+            ],
+            "lifecycleStages": [
+                "BUILD",
+                "DEPLOY"
+            ],
+            "eventSource": "NOT_APPLICABLE",
+            "exclusions": [],
+            "scope": [],
+            "severity": "CRITICAL_SEVERITY",
+            "enforcementActions": [],
+            "notifiers": [],
+            "lastUpdated": "2023-12-04T22:58:54.973300975Z",
+            "SORTName": "",
+            "SORTLifecycleStage": "",
+            "SORTEnforcement": false,
+            "policyVersion": "1.1",
+            "policySections": [
+                {
+                    "sectionName": "Policy Section 1",
+                    "policyGroups": [
+                        {
+                            "fieldName": "Image Signature Verified By",
+                            "booleanOperator": "OR",
+                            "negate": false,
+                            "values": [
+                                {
+                                    "value": "io.stackrox.signatureintegration.8cb1221d-99c4-40ed-a089-4b087583cf96"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "mitreAttackVectors": [],
+            "criteriaLocked": false,
+            "mitreVectorsLocked": false,
+            "isDefault": false
+        }
+    ]
+}

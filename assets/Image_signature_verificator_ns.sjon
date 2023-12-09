@@ -1,0 +1,61 @@
+{
+    "policies": [
+        {
+            "id": "21343c5c-84db-42df-a404-cfaa3e438b0e",
+            "name": "Image_signature_verificator",
+            "description": "Alert and Block Images when they have not been signed.",
+            "rationale": "",
+            "remediation": "Images must be signed.",
+            "disabled": false,
+            "categories": [
+                "Security Best Practices"
+            ],
+            "lifecycleStages": [
+                "BUILD",
+                "DEPLOY"
+            ],
+            "eventSource": "NOT_APPLICABLE",
+            "exclusions": [],
+            "scope": [
+                {
+                    "cluster": "c90c58c2-2468-44b9-bf60-3e420a31cdfd",
+                    "namespace": "demo-secure-images",
+                    "label": null
+                }
+            ],
+            "severity": "CRITICAL_SEVERITY",
+            "enforcementActions": [
+                "FAIL_BUILD_ENFORCEMENT",
+                "SCALE_TO_ZERO_ENFORCEMENT",
+                "UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT"
+            ],
+            "notifiers": [],
+            "lastUpdated": "2023-12-04T23:05:34.699171735Z",
+            "SORTName": "",
+            "SORTLifecycleStage": "",
+            "SORTEnforcement": false,
+            "policyVersion": "1.1",
+            "policySections": [
+                {
+                    "sectionName": "Policy Section 1",
+                    "policyGroups": [
+                        {
+                            "fieldName": "Image Signature Verified By",
+                            "booleanOperator": "OR",
+                            "negate": false,
+                            "values": [
+                                {
+                                    "value": "io.stackrox.signatureintegration.8cb1221d-99c4-40ed-a089-4b087583cf96"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "mitreAttackVectors": [],
+            "criteriaLocked": false,
+            "mitreVectorsLocked": false,
+            "isDefault": false
+        }
+    ]
+}

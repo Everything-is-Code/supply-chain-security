@@ -1,0 +1,116 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: build-sign-n-deploy
+  namespace: demo-secure-images
+spec:
+  params:
+    - description: Name of the deployment to be patched
+      name: deployment-name
+      type: string
+    - description: Url of the git repo for the code of deployment
+      name: git-url
+      type: string
+    - default: master
+      description: Revision to be used from repo of the code for deployment
+      name: git-revision
+      type: string
+    - description: Image to be build from the code
+      name: IMAGE
+      type: string
+    - default: openshift-pipelines
+      description: Namespace where the Tekton project is installed by the release
+      name: namespace
+      type: string
+  tasks:
+    - name: fetch-repository
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: deleteExisting
+          value: 'true'
+        - name: revision
+          value: $(params.git-revision)
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+    - name: buildah-1-13-0
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: BUILDER_IMAGE
+          value: registry.redhat.io/rhel8/buildah
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'true'
+        - name: FORMAT
+          value: oci
+      runAfter:
+        - fetch-repository
+      taskRef:
+        kind: ClusterTask
+        name: buildah-1-13-0
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: sign-image
+      params:
+        - name: image
+          value: $(params.IMAGE)
+        - name: namespace
+          value: $(params.namespace)
+        - name: cosignkey
+          value: cosign
+      runAfter:
+        - buildah-1-13-0
+      taskRef:
+        kind: Task
+        name: cosign
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: apply-manifests
+      runAfter:
+        - stackrox-image-check
+      taskRef:
+        kind: Task
+        name: apply-manifests
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: update-deployment
+      params:
+        - name: deployment
+          value: $(params.deployment-name)
+        - name: IMAGE
+          value: $(params.IMAGE)
+      runAfter:
+        - apply-manifests
+      taskRef:
+        kind: Task
+        name: update-deployment
+    - name: stackrox-image-check
+      runAfter:
+        - sign-image
+      taskRef:
+        kind: Task
+        name: stackrox-image-check
+      params:
+        - name: rox_central_endpoint
+          value: roxsecrets
+        - name: rox_api_token
+          value: roxsecrets
+        - name: image
+          value: $(params.IMAGE)
+        - name: insecure-skip-tls-verify
+          value: 'true'
+  workspaces:
+    - name: shared-workspace
