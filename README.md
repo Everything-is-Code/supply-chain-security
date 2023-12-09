@@ -1,7 +1,7 @@
 # Pipeline Supply Chain
 
 ## Pre Requirements
-Openshift GitOps should be installed, it cna be installed using our [Repo](https://github.com/Everything-is-Code/openshift-gitops) :
+Openshift GitOps should be installed, it can be installed using our [Repo](https://github.com/Everything-is-Code/openshift-gitops) :
 
 Install all requiere tools using Gitops applying boostrap folder: 
  
