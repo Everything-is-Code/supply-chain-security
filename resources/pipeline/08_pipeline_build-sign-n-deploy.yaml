@@ -98,11 +98,6 @@ spec:
         kind: Task
         name: update-deployment
     - name: stackrox-image-check
-      runAfter:
-        - sign-image
-      taskRef:
-        kind: Task
-        name: stackrox-image-check
       params:
         - name: rox_central_endpoint
           value: roxsecrets
@@ -112,5 +107,13 @@ spec:
           value: $(params.IMAGE)
         - name: insecure-skip-tls-verify
           value: 'true'
+      runAfter:
+        - sign-image
+      taskRef:
+        kind: Task
+        name: stackrox-image-check
+      workspaces:
+        - name: source
+          workspace: shared-workspace
   workspaces:
     - name: shared-workspace
