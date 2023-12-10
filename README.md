@@ -26,7 +26,7 @@ Install the [roxctl cli](https://docs.openshift.com/acs/4.3/cli/installing-the-r
 to get central url we cna execute 
 
 ```
-CENTRAL_URL=$(oc get route central -n stackrox --template='https://{{.spec.host}}')
+CENTRAL_URL=$(oc get route central -n stackrox --template='{{.spec.host}}')
 ```
 
 ```
