@@ -9,7 +9,7 @@ metadata:
 spec:
   params:
     - name: deployment-name
-      value: ' pipelines-vote-api'
+      value: 'pipelines-vote-api'
     - name: git-url
       value: 'https://github.com/openshift/pipelines-vote-api.git'
     - name: git-revision
