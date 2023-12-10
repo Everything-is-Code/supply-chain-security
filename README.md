@@ -152,7 +152,7 @@ metadata:
   name: roxsecrets
   namespace: $NAMESPACE
 type: Opaque
-data:
+stringData:
   rox_api_token: "$ROX_API_TOKEN"
   rox_central_endpoint: "$CENTRAL_URL:443"
 EOF
