@@ -4,4 +4,4 @@ commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 resources:
 - pipeline
-# - pipelinerun
+- pipelinerun
