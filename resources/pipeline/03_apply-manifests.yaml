@@ -13,7 +13,8 @@ spec:
     - args:
         - |-
           echo Applying manifests in $(inputs.params.manifest_dir) directory
-          kubectl apply -f $(inputs.params.manifest_dir)
+          sed -i 's#REPLACE_IMAGE#'"$IMAGE"'#' deployment.yaml
+          oc apply -f $(inputs.params.manifest_dir)
           echo -----------------------------------
       command:
         - /bin/bash
