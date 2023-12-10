@@ -4,3 +4,4 @@ commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 resources:
 - 11_pipelinerun_build-sign-n-deploy.yaml
+- 12_pipelinerun_build-deploy.yaml
