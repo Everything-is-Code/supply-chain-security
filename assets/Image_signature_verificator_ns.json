@@ -18,7 +18,7 @@
             "exclusions": [],
             "scope": [
                 {
-                    "cluster": "c90c58c2-2468-44b9-bf60-3e420a31cdfd",
+                    "cluster": "3cc9386d-f5d5-44b3-8987-0693ee912d17",
                     "namespace": "demo-secure-images",
                     "label": null
                 }
@@ -30,7 +30,7 @@
                 "UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT"
             ],
             "notifiers": [],
-            "lastUpdated": "2023-12-04T23:05:34.699171735Z",
+            "lastUpdated": "2023-12-10T20:37:12.753720988Z",
             "SORTName": "",
             "SORTLifecycleStage": "",
             "SORTEnforcement": false,
@@ -45,7 +45,7 @@
                             "negate": false,
                             "values": [
                                 {
-                                    "value": "io.stackrox.signatureintegration.8cb1221d-99c4-40ed-a089-4b087583cf96"
+                                    "value": "io.stackrox.signatureintegration.df4e299f-e242-4e85-a5c7-ced68ee3dcf6"
                                 }
                             ]
                         }
