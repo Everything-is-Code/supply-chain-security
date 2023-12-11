@@ -88,8 +88,7 @@ spec:
               data:
                 .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
               EOF
-
-              
+              oc apply -f regcred.yaml
           imagePullPolicy: Always
           name: integrations-acs
           env:

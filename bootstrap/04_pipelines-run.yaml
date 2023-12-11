@@ -3,15 +3,15 @@ kind: Application
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
-  name: pipeline-signed
+  name: pipelines-run
   namespace: openshift-gitops
 spec:
   destination:
     namespace: secure-images-demo
     server: https://kubernetes.default.svc
-  project: default
+  project: supply-chain-security
   source:
-    path: resources
+    path: resources/pipelines-run
     repoURL: https://github.com/Everything-is-Code/supply-chain-security.git
     targetRevision: main
   syncPolicy:
@@ -20,8 +20,3 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
-  ignoreDifferences:
-    - kind: ServiceAccount
-      jsonPointers:
-        - /imagePullSecrets
-        - /secrets    

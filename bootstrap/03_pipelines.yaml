@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  name: pipelines
+  namespace: openshift-gitops
+spec:
+  destination:
+    namespace: secure-images-demo
+    server: https://kubernetes.default.svc
+  project: supply-chain-security
+  source:
+    path: resources/pipelines
+    repoURL: https://github.com/Everything-is-Code/supply-chain-security.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+  ignoreDifferences:
+    - kind: ServiceAccount
+      jsonPointers:
+        - /imagePullSecrets
+        - /secrets    
