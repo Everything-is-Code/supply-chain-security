@@ -71,7 +71,7 @@ spec:
               else
                 # Create the secret if it doesn't exist
                 echo "Secret doesn't exist. Creating it..."
-                export QUAY_TOKEN=$(curl -s -X POST -k  https://QUAY_ROUTE/api/v1/user/initialize --header 'Content-Type: application/json' --data '{ "username": "quayadmin", "password":"quaypass12345", "email": "quayadmin@example.com", "access_token": true}' | jq -r  .access_token) 
+                export QUAY_TOKEN=$(curl -s -X POST -k  https://$QUAY_ROUTE/api/v1/user/initialize --header 'Content-Type: application/json' --data '{ "username": "quayadmin", "password":"quaypass12345", "email": "quayadmin@example.com", "access_token": true}' | jq -r  .access_token) 
                 oc create secret generic quay-token --from-literal=quay-token=$QUAY_TOKEN -n registry
               fi
 
