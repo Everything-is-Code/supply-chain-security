@@ -77,7 +77,7 @@ spec:
               curl -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
               
               ### Generate pull secret
-              encoded_credentials=$(ech -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
+              encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
               cat <<EOF > regcred.yaml
               apiVersion: v1
               kind: Secret
