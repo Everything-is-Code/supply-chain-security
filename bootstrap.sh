@@ -1,7 +1,7 @@
 OC_COMMAND="oc <command>"
 
 # Check if the operator is installed
-oc apply -k ./bootstrap/argo/
+oc apply -k ./bootstrap/argocd/
 OPERATOR_NAME="openshift-gitops-operator"
 OPERATOR_STATUS=$(oc get clusteroperators | grep "$OPERATOR_NAME" | awk '{print $2}')
 
