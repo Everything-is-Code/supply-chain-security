@@ -58,6 +58,38 @@ spec:
               -H 'content-type: application/json' \
               --data-raw "{\"policies\":[{\"id\":\"c8fde2c3-980c-40e3-bc9d-6245b13ab81e\",\"name\":\"Trusted_Signature_Image_Policy\",\"description\":\"Alert on Images that have not been signed\",\"rationale\":\"rationale\",\"remediation\":\"All images should be signed by our cosign-demo signature\",\"disabled\":false,\"categories\":[\"Security Best Practices\"],\"lifecycleStages\":[\"BUILD\",\"DEPLOY\"],\"severity\":\"HIGH_SEVERITY\",\"enforcementActions\":[],\"notifiers\":[],\"SORTName\":\"\",\"SORTLifecycleStage\":\"\",\"SORTEnforcement\":true,\"policyVersion\":\"1.1\",\"policySections\":[{\"sectionName\":\"Policy Section 1\",\"policyGroups\":[{\"fieldName\":\"Image Signature Verified By\",\"booleanOperator\":\"OR\",\"negate\":false,\"values\":[{\"value\":\"$policy_id\"}]}]}],\"mitreAttackVectors\":[],\"criteriaLocked\":false,\"mitreVectorsLocked\":false,\"isDefault\":false}],\"metadata\":{\"overwrite\":false}}" \
               --insecure
+
+              ##Quay Integration with ACS and Pipeline
+              ### Quay user creation and Repository
+              export QUAY_ROUTE=$(oc get route quay-quay -n registry --template='{{.spec.host}}')
+              export QUAY_TOKEN=$(curl -s -X POST -k  https://QUAY_ROUTE/api/v1/user/initialize --header 'Content-Type: application/json' --data '{ "username": "quayadmin", "password":"quaypass12345", "email": "quayadmin@example.com", "access_token": true}' | jq -r  .access_token) 
+              oc create secret generic quay-token --from-literal=quay-token=$QUAY_TOKEN -n registry
+              
+              ### Quay create repository
+              curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
+              
+              ### Create a robot account
+              export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration11 -H "Authorization: Bearer $QUAY_TOKEN")
+              export ROBOT_NAME=$(echo $robot_response | jq -r .name)
+              export ROBOT_TOKEN=$(echo $robot_response | jq -r token)
+              
+              ### Robot Account Repository Permisons
+              curl -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
+              
+              ### Generate pull secret
+              encoded_credentials=$(echo $ROBOT_NAME:$ROBOT_TOKEN | base64 -w 0)
+              cat <<EOF > regcred.yaml
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: regcred
+                namespace: $NAMESPACE
+              type: kubernetes.io/dockerconfigjson
+              data:
+                .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
+              EOF
+
+              
           imagePullPolicy: Always
           name: integrations-acs
           env:
