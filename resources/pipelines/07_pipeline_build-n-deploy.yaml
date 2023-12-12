@@ -3,7 +3,7 @@ kind: Pipeline
 metadata:
   name: build-n-deploy
   namespace: demo-secure-images
-spec:
+pec:
   params:
     - description: name of the deployment to be patched
       name: deployment-name
@@ -38,6 +38,9 @@ spec:
         - name: output
           workspace: shared-workspace
     - name: apply-manifests
+      params:
+        - name: image
+          value: $(params.IMAGE)
       runAfter:
         - buildah-1-13-0
       taskRef:
