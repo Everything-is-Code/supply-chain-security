@@ -16,31 +16,32 @@ spec:
             - /bin/bash
             - -c
             - |
-              echo "Generating Api Token ACS"
               export CENTRAL_URL=$(oc get route central -n stackrox --template='{{.spec.host}}')
               export acs_password=$(oc get secret acs-password -n stackrox -o jsonpath='{.data.password}' | base64 --decode)
               export state=$(curl -s https://$CENTRAL_URL/v1/login/authproviders --insecure | jq -r .authProviders[0].id)
               export token=$(curl -s https://$CENTRAL_URL/v1/authProviders/exchangeToken    -H 'content-type: application/json'   --data-raw "{\"external_token\":\"username=admin&password=$acs_password\",\"type\":\"basic\",\"state\":\"$state\"}"   -k | jq -r .token)
               export ROX_API_TOKEN=$(curl -s https://$CENTRAL_URL/v1/apitokens/generate   -H "authorization: Bearer $token"   -H "content-type: application/json"   --data-raw '{"name":"token1","roles":["Admin"]}' --insecure | jq -r  .token)
-
-              ## Creating ROX secret
-              echo "Creating roxsecret"
-              cat <<EOF > roxsecret.yaml
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: roxsecrets
-                namespace: $NAMESPACE
-              type: Opaque
-              stringData:
-                rox_api_token: "$ROX_API_TOKEN"
-                rox_central_endpoint: "$CENTRAL_URL:443"
-              EOF
+              export COSIGN_PASSWORD=redhat01
               
-              oc apply -f ./roxsecret.yaml
-
+              if ! oc get secrets -n $NAMESPACE roxsecrets 2> /dev/null; then
+                echo "Secret does not exist. Creating Api Token ACS..."
+                ## Creating ROX secret
+                echo "Creating roxsecret"
+                cat <<EOF > roxsecret.yaml
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: roxsecrets
+                  namespace: $NAMESPACE
+                type: Opaque
+                stringData:
+                  rox_api_token: "$ROX_API_TOKEN"
+                  rox_central_endpoint: "$CENTRAL_URL:443"
+                EOF
+                oc apply -f ./roxsecret.yaml
+              fi
+         
               ## Creating Cosign Signature
-
               ### Downloading cosig cli
               echo "Downloading cosign cli"
               curl -s -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
@@ -48,7 +49,7 @@ spec:
 
               ### Generating key pair secret
               echo "Checking key if pair is createdt"
-              export COSIGN_PASSWORD=redhat01
+
               if ! oc get secrets -n $NAMESPACE cosign 2> /dev/null; then
                  echo "Secret doesn't exist. Creating it..."
                 ./cosign generate-key-pair k8s://$NAMESPACE/cosign

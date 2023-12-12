@@ -3,7 +3,7 @@ kind: Pipeline
 metadata:
   name: build-n-deploy
   namespace: demo-secure-images
-pec:
+spec:
   params:
     - description: name of the deployment to be patched
       name: deployment-name
