@@ -78,6 +78,9 @@ spec:
         - name: source
           workspace: shared-workspace
     - name: apply-manifests
+      params:
+        - name: image
+          value: $(params.IMAGE)
       runAfter:
         - stackrox-image-check
       taskRef:
