@@ -59,7 +59,7 @@ spec:
                 ./cosign generate-key-pair k8s://$NAMESPACE/cosign
               fi
 
-              echo " \n \n \n Step 3 ACS Integration"
+              echo -e " \n \n \n Step 3 ACS Integration"
               ### Generating integration with ACS
               echo "Generating integration with ACS"
               export cosign_pub=$(oc get secret cosign -n demo-secure-images -o jsonpath='{.data.cosign\.pub}' | base64 --decode)
@@ -79,7 +79,7 @@ spec:
 
               ##Quay Integration with ACS and Pipeline
               ### Quay user creation and Repository
-              echo " \n \n \n Step 3.5 Quay Integration with ACS and Pipeline"
+              echo -e " \n \n \n Step 3.5 Quay Integration with ACS and Pipeline"
 
               export QUAY_ROUTE=$(oc get route quay-quay -n registry --template='{{.spec.host}}')
               echo "checking if token secret exist"
@@ -94,7 +94,7 @@ spec:
               fi
 
               ### Quay create repository
-              echo " \n \n \n Step 4 Creating Repository"
+              echo -e " \n \n \n Step 4 Creating Repository"
               curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
 
               ### Create a robot account
@@ -124,7 +124,7 @@ spec:
               EOF
               oc apply -f regcred.yaml
 
-              echo "Done"
+              echo -e "\n \n \n DONE!"
           imagePullPolicy: Always
           name: integrations-acs
           env:
