@@ -9,12 +9,15 @@ spec:
       description: The directory in source that contains yaml manifests
       name: manifest_dir
       type: string
+    - default: $(params.IMAGE)
+      name: image
+      type: string      
   steps:
     - args:
         - |-
-          echo Applying manifests in $(inputs.params.manifest_dir) directory
-          sed -i 's#REPLACE_IMAGE#'"$IMAGE"'#' deployment.yaml
-          oc apply -f $(inputs.params.manifest_dir)
+          echo Applying manifests in $(inputs.params.manifest_dir) directory;
+          sed -i 's#REPLACE_IMAGE#'"$(params.image)"'#' $(inputs.params.manifest_dir)/deployment.yaml;
+          oc apply -f $(inputs.params.manifest_dir);
           echo -----------------------------------
       command:
         - /bin/bash
