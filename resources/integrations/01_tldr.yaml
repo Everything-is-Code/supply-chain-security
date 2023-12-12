@@ -16,6 +16,7 @@ spec:
             - /bin/bash
             - -c
             - |
+              echo "Generating Api Token ACS"
               export CENTRAL_URL=$(oc get route central -n stackrox --template='{{.spec.host}}')
               export acs_password=$(oc get secret acs-password -n stackrox -o jsonpath='{.data.password}' | base64 --decode)
               export state=$(curl -s https://$CENTRAL_URL/v1/login/authproviders --insecure | jq -r .authProviders[0].id)
@@ -23,6 +24,7 @@ spec:
               export ROX_API_TOKEN=$(curl -s https://$CENTRAL_URL/v1/apitokens/generate   -H "authorization: Bearer $token"   -H "content-type: application/json"   --data-raw '{"name":"token1","roles":["Admin"]}' --insecure | jq -r  .token)
 
               ## Creating ROX secret
+              echo "Creating roxsecret"
               cat <<EOF > roxsecret.yaml
               apiVersion: v1
               kind: Secret
@@ -40,21 +42,26 @@ spec:
               ## Creating Cosign Signature
 
               ### Downloading cosig cli
+              echo "Downloading cosign cli"
               curl -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
               chmod +x ./cosign
 
               ### Generating key pair secret
+              echo "Checking key if pair is createdt"
               export COSIGN_PASSWORD=redhat01
               if ! oc get secrets -n $NAMESPACE cosign 2> /dev/null; then
                  echo "Secret doesn't exist. Creating it..."
                 ./cosign generate-key-pair k8s://$NAMESPACE/cosign
               fi
               ### Generating integration with ACS
+              echo "Generating integration with ACS"
               export cosign_pub=$(oc get secret cosign -n demo-secure-images -o jsonpath='{.data.cosign\.pub}' | base64 --decode)
               #### fix for send json with ub key
               clean_cosign_pub="${cosign_pub//$'\n'/\\n}"
+              echo "generating signature integration"
               policy_id=$(curl -s https://$CENTRAL_URL/v1/signatureintegrations -H "authorization: Bearer $token"   -H 'content-type: application/json'   --data-raw "{\"id\":\"\",\"name\":\"$COSIGN_NAME\",\"cosign\":{\"publicKeys\":[{\"name\":\"cosign-pub\",\"publicKeyPemEnc\":\"$clean_cosign_pub\"}]}}"   --insecure | jq -r .id )
               ### Generating ACS Policy
+              echo "generating policy in ACS"
               curl -k -s https://$CENTRAL_URL/v1/policies/import \
               -H "authorization: Bearer $token" \
               -H 'accept-language: es-419,es;q=0.9,en;q=0.8' \
@@ -64,7 +71,10 @@ spec:
 
               ##Quay Integration with ACS and Pipeline
               ### Quay user creation and Repository
+              echo "Quay Integration with ACS and Pipeline"
+              
               export QUAY_ROUTE=$(oc get route quay-quay -n registry --template='{{.spec.host}}')
+              echo "checking if token secret exist"
               if oc get secrets -n registry quay-token 2> /dev/null; then
                 echo "Secret already exists. using token"
                 export QUAY_TOKEN=$(oc get secret quay-token -n registry -o jsonpath='{.data.quay-token}' | base64 --decode ) 
@@ -76,17 +86,21 @@ spec:
               fi
 
               ### Quay create repository
+              echo "creating repository"
               curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
               
               ### Create a robot account
+              echo "creatinf robot account"
               export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration11 -H "Authorization: Bearer $QUAY_TOKEN")
               export ROBOT_NAME=$(echo $robot_response | jq -r .name)
               export ROBOT_TOKEN=$(echo $robot_response | jq -r .token)
               
               ### Robot Account Repository Permisons
+              echo "Setting Permisons in Robot Account on repository"
               curl -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
               
               ### Generate pull secret
+              echo "Creating pull secret"
               encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
               cat <<EOF > regcred.yaml
               apiVersion: v1
