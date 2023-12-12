@@ -39,7 +39,7 @@ spec:
                   rox_central_endpoint: "$CENTRAL_URL:443"
               EOF
                 oc apply -f ./roxsecret.yaml
-              elif
+              else
                 echo " Secret was present."
               fi
 
