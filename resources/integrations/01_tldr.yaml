@@ -39,6 +39,8 @@ spec:
                   rox_central_endpoint: "$CENTRAL_URL:443"
               EOF
                 oc apply -f ./roxsecret.yaml
+              elif
+                echo " Secret was present."
               fi
 
               ## Creating Cosign Signature
