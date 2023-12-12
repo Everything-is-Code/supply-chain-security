@@ -43,7 +43,7 @@ spec:
 
               ### Downloading cosig cli
               echo "Downloading cosign cli"
-              curl -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
+              curl -s -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
               chmod +x ./cosign
 
               ### Generating key pair secret
@@ -97,7 +97,7 @@ spec:
               
               ### Robot Account Repository Permisons
               echo "Setting Permisons in Robot Account on repository"
-              curl -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
+              curl -s -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
               if oc get secrets -n $NAMESPACE regcred 2> /dev/null; then
                 echo "Secret already exists."
               else
