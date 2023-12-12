@@ -9,8 +9,7 @@ spec:
       description: The directory in source that contains yaml manifests
       name: manifest_dir
       type: string
-    - default: $(params.IMAGE)
-      name: image
+    - name: image
       type: string      
   steps:
     - args:
