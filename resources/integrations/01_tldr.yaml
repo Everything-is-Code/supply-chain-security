@@ -36,7 +36,7 @@ spec:
                 rox_api_token: "$ROX_API_TOKEN"
                 rox_central_endpoint: "$CENTRAL_URL:443"
               EOF
-
+              
               oc apply -f ./roxsecret.yaml
 
               ## Creating Cosign Signature
@@ -66,8 +66,9 @@ spec:
               -H "authorization: Bearer $token" \
               -H 'accept-language: es-419,es;q=0.9,en;q=0.8' \
               -H 'content-type: application/json' \
-              --data-raw "{\"policies\":[{\"id\":\"c8fde2c3-980c-40e3-bc9d-6245b13ab81e\",\"name\":\"Trusted_Signature_Image_Policy\",\"description\":\"Alert on Images that have not been signed\",\"rationale\":\"rationale\",\"remediation\":\"All images should be signed by our cosign-demo signature\",\"disabled\":false,\"categories\":[\"Security Best Practices\"],\"lifecycleStages\":[\"BUILD\",\"DEPLOY\"],\"eventSource\":\"NOT_APPLICABLE\",\"exclusions\":[{\"name\":\"\",\"deployment\":{\"name\":\"\",\"scope\":{\"cluster\":\"local-cluster\",\"namespace\":\"\",\"label\":{\"key\":\"app.kubernetes.io\",\"value\":\"integrations-acs\"}}},\"image\":null,\"expiration\":null}],\"scope\":[{\"cluster\":\"local-cluster\",\"namespace\":\"demo-secure-images\",\"label\":null}],\"severity\":\"HIGH_SEVERITY\",\"enforcementActions\":[\"FAIL_BUILD_ENFORCEMENT\",\"SCALE_TO_ZERO_ENFORCEMENT\",\"UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT\"],\"notifiers\":[],\"lastUpdated\":\"2023-12-12T10:53:05.674937810Z\",\"SORTName\":\"\",\"SORTLifecycleStage\":\"\",\"SORTEnforcement\":false,\"policyVersion\":\"1.1\",\"policySections\":[{\"sectionName\":\"Policy Section 1\",\"policyGroups\":[{\"fieldName\":\"Image Signature Verified By\",\"booleanOperator\":\"OR\",\"negate\":false,\"values\":[{\"value\":\"io.stackrox.signatureintegration.16fe3b8f-2135-48a5-b27f-2d5268487c59\"}]}]}],\"mitreAttackVectors\":[],\"criteriaLocked\":false,\"mitreVectorsLocked\":false,\"isDefault\":false}]}" \
+              --data-raw "{\"policies\":[{\"id\":\"c8fde2c3-980c-40e3-bc9d-6245b13ab81e\",\"name\":\"Trusted_Signature_Image_Policy\",\"description\":\"Alert on Images that have not been signed\",\"rationale\":\"rationale\",\"remediation\":\"All images should be signed by our cosign-demo signature\",\"disabled\":false,\"categories\":[\"Security Best Practices\"],\"lifecycleStages\":[\"BUILD\",\"DEPLOY\"],\"eventSource\":\"NOT_APPLICABLE\",\"exclusions\":[{\"name\":\"\",\"deployment\":{\"name\":\"\",\"scope\":{\"cluster\":\"\",\"namespace\":\"\",\"label\":{\"key\":\"app.kubernetes.io\",\"value\":\"integrations-acs\"}}},\"image\":null,\"expiration\":null}],\"scope\":[{\"cluster\":\"\",\"namespace\":\"demo-secure-images\",\"label\":null}],\"severity\":\"HIGH_SEVERITY\",\"enforcementActions\":[\"FAIL_BUILD_ENFORCEMENT\",\"SCALE_TO_ZERO_ENFORCEMENT\",\"UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT\"],\"notifiers\":[],\"lastUpdated\":\"2023-12-12T11:18:34.639367431Z\",\"SORTName\":\"\",\"SORTLifecycleStage\":\"\",\"SORTEnforcement\":false,\"policyVersion\":\"1.1\",\"policySections\":[{\"sectionName\":\"Policy Section 1\",\"policyGroups\":[{\"fieldName\":\"Image Signature Verified By\",\"booleanOperator\":\"OR\",\"negate\":false,\"values\":[{\"value\":\"io.stackrox.signatureintegration.16fe3b8f-2135-48a5-b27f-2d5268487c59\"}]}]}],\"mitreAttackVectors\":[],\"criteriaLocked\":false,\"mitreVectorsLocked\":false,\"isDefault\":false}]}" \
               --insecure
+
 
               ##Quay Integration with ACS and Pipeline
               ### Quay user creation and Repository
