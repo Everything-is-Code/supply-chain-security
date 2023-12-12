@@ -51,7 +51,7 @@ spec:
               echo "Checking key if pair is createdt"
 
               if ! oc get secrets -n $NAMESPACE cosign 2> /dev/null; then
-                 echo "Secret doesn't exist. Creating it..."
+                echo "Secret doesn't exist. Creating it..."
                 ./cosign generate-key-pair k8s://$NAMESPACE/cosign
               fi
               ### Generating integration with ACS
