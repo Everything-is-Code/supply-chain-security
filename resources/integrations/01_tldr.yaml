@@ -99,26 +99,23 @@ spec:
               echo "Setting Permisons in Robot Account on repository"
               curl -s -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
 
-              if oc get secrets -n demo-secure-images regcred 2> /dev/null; then
-                echo "Secret already exists. using token"
-              else
-                # Create the secret regcred zif it doesn't exist
-                echo "Secret doesn't exist. Creating it..."
-                ### Generate pull secret
-                echo "Creating pull secret"
-                encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
-                cat <<EOF > regcred.yaml
-                apiVersion: v1
-                kind: Secret
-                metadata:
-                  name: regcred
-                  namespace: $NAMESPACE
-                type: kubernetes.io/dockerconfigjson
-                data:
-                  .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
-                EOF
-                oc apply -f regcred.yaml
-              fi
+              # Create the secret regcred zif it doesn't exist
+              echo "Secret doesn't exist. Creating it..."
+              ### Generate pull secret
+              echo "Creating pull secret"
+              encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
+              cat <<EOF > regcred.yaml
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: regcred
+                namespace: $NAMESPACE
+              type: kubernetes.io/dockerconfigjson
+              data:
+                .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
+              EOF
+              oc apply -f regcred.yaml
+
           imagePullPolicy: Always
           name: integrations-acs
           env:
