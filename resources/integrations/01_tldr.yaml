@@ -90,7 +90,7 @@ spec:
               curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
               
               ### Create a robot account
-              echo "creatinf robot account"
+              echo "creating robot account"
               export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration -H "Authorization: Bearer $QUAY_TOKEN")
               export ROBOT_NAME=$(echo $robot_response | jq -r .name)
               export ROBOT_TOKEN=$(echo $robot_response | jq -r .token)
@@ -98,21 +98,26 @@ spec:
               ### Robot Account Repository Permisons
               echo "Setting Permisons in Robot Account on repository"
               curl -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
-              
-              ### Generate pull secret
-              echo "Creating pull secret"
-              encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
-              cat <<EOF > regcred.yaml
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: regcred
-                namespace: $NAMESPACE
-              type: kubernetes.io/dockerconfigjson
-              data:
-                .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
-              EOF
-              oc apply -f regcred.yaml
+              if oc get secrets -n $NAMESPACE regcred 2> /dev/null; then
+                echo "Secret already exists."
+              else
+                # Create the secret regcred zif it doesn't exist
+                echo "Secret doesn't exist. Creating it..."
+                ### Generate pull secret
+                echo "Creating pull secret"
+                encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
+                cat <<EOF > regcred.yaml
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: regcred
+                  namespace: $NAMESPACE
+                type: kubernetes.io/dockerconfigjson
+                data:
+                  .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
+                EOF
+                oc apply -f regcred.yaml
+              fi
           imagePullPolicy: Always
           name: integrations-acs
           env:
