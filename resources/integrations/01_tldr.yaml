@@ -91,7 +91,7 @@ spec:
               
               ### Create a robot account
               echo "creatinf robot account"
-              export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration11 -H "Authorization: Bearer $QUAY_TOKEN")
+              export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration -H "Authorization: Bearer $QUAY_TOKEN")
               export ROBOT_NAME=$(echo $robot_response | jq -r .name)
               export ROBOT_TOKEN=$(echo $robot_response | jq -r .token)
               
