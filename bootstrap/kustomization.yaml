@@ -4,4 +4,4 @@ commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 resources:
 - 01_operators-v2.yaml
-- 02_pipelines.yaml
+- 03_pipelines.yaml
