@@ -16,114 +16,146 @@ spec:
             - /bin/bash
             - -c
             - |
-
               echo "Step 1 Imports"
-              export CENTRAL_URL=$(oc get route central -n stackrox --template='{{.spec.host}}')
-              export acs_password=$(oc get secret acs-password -n stackrox -o jsonpath='{.data.password}' | base64 --decode)
-              export state=$(curl -s https://$CENTRAL_URL/v1/login/authproviders --insecure | jq -r .authProviders[0].id)
-              export token=$(curl -s https://$CENTRAL_URL/v1/authProviders/exchangeToken    -H 'content-type: application/json'   --data-raw "{\"external_token\":\"username=admin&password=$acs_password\",\"type\":\"basic\",\"state\":\"$state\"}"   -k | jq -r .token)
-              export ROX_API_TOKEN=$(curl -s https://$CENTRAL_URL/v1/apitokens/generate   -H "authorization: Bearer $token"   -H "content-type: application/json"   --data-raw '{"name":"token1","roles":["Admin"]}' --insecure | jq -r  .token)
-              export COSIGN_PASSWORD=redhat01
+              #!/bin/bash
+              # Step 1: Imports
+              step1_imports() {
+                  export CENTRAL_URL=$(oc get route central -n stackrox --template='{{.spec.host}}')
+                  export acs_password=$(oc get secret acs-password -n stackrox -o jsonpath='{.data.password}' | base64 --decode)
+                  # Todo revisar si se peude poner en funcion
+                  export state=$(curl -s https://$CENTRAL_URL/v1/login/authproviders --insecure | jq -r .authProviders[0].id)
+                  export token=$(curl -s https://$CENTRAL_URL/v1/authProviders/exchangeToken -H 'content-type: application/json' --data-raw "{\"external_token\":\"username=admin&password=$acs_password\",\"type\":\"basic\",\"state\":\"$state\"}" -k | jq -r .token)
+                  ###
+                  export ROX_API_TOKEN=$(curl -s https://$CENTRAL_URL/v1/apitokens/generate -H "authorization: Bearer $token" -H "content-type: application/json" --data-raw '{"name":"token1","roles":["Admin"]}' --insecure | jq -r .token)
+                  export QUAY_ROUTE=$(oc get route quay-quay -n registry --template='{{.spec.host}}')
+                  export QUAY_TOKEN=""
+                  export COSIGN_PASSWORD=redhat01
+                  export cosign_pub=""
+              }
 
-              echo -e " \n \n Step 2 Rox token"
-              if ! oc get secrets -n $NAMESPACE roxsecrets 2> /dev/null; then
-                echo "Secret does not exist. Creating Api Token ACS..."
-                ## Creating ROX secret
-                echo "Creating roxsecret"
-                cat <<EOF > roxsecret.yaml
-                apiVersion: v1
-                kind: Secret
-                metadata:
-                  name: roxsecrets
-                  namespace: $NAMESPACE
-                type: Opaque
-                stringData:
-                  rox_api_token: "$ROX_API_TOKEN"
-                  rox_central_endpoint: "$CENTRAL_URL:443"
+              # Step 2: Rox token
+              generate_rox_secret() {
+                  if ! oc get secrets -n $NAMESPACE roxsecrets 2> /dev/null; then
+                      echo "Secret does not exist. Creating Api Token ACS..."
+                      ## Creating ROX secret
+                      echo "Creating roxsecret"
+                      cat <<EOF > roxsecret.yaml
+                      apiVersion: v1
+                      kind: Secret
+                      metadata:
+                          name: roxsecrets
+                          namespace: $NAMESPACE
+                      type: Opaque
+                      stringData:
+                          rox_api_token: "$ROX_API_TOKEN"
+                          rox_central_endpoint: "$CENTRAL_URL:443"
               EOF
-                oc apply -f ./roxsecret.yaml
-              fi
+                          oc apply -f ./roxsecret.yaml
+                  else
+                      echo "Recovering from roxsecret..."
+                      ROX_API_TOKEN=$(oc get secret roxsecrets -n $NAMESPACE -o jsonpath='{.data.rox_api_token}' | base64 --decode)
+                  fi
+              }
 
+              download_cosign_cli() {
+                  ### Downloading cosign cli
+                  echo "Downloading cosign cli"
+                  curl -s -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
+                  chmod +x ./cosign
+              }
+
+              # Step 3: Cosign Signature
+              generate_cosign_signature() {
+                  ## Creating Cosign Signature
+                  download_cosign_cli
+                  ### Generating key pair secret
+                  echo "Checking if key pair is created"
+                  if ! oc get secrets -n $NAMESPACE cosign 2> /dev/null; then
+                      echo "Secret doesn't exist. Creating it..."
+                      ./cosign generate-key-pair k8s://$NAMESPACE/cosign
+                  fi
+              }
+
+              # Step 3.1: ACS Signature Integration & Policy Creation 
+              create_signature_and_policy_acs() {
+                  ### Generating integration with ACS
+                  echo "Generating integration Signature in ACS"
+                  cosign_pub=$(oc get secret cosign -n demo-secure-images -o jsonpath='{.data.cosign\.pub}' | base64 --decode)
+                  #### fix for send json with ub key
+                  clean_cosign_pub="${cosign_pub//$'\n'/\\n}"
+                  echo "Generating ACS API Call for Signature Creation"
+                  signature_id=$(curl -s https://$CENTRAL_URL/v1/signatureintegrations -H "authorization: Bearer $ROX_API_TOKEN" -H 'content-type: application/json' --data-raw "{\"id\":\"\",\"name\":\"$COSIGN_NAME\",\"cosign\":{\"publicKeys\":[{\"name\":\"cosign-pub\",\"publicKeyPemEnc\":\"$clean_cosign_pub\"}]}}" --insecure | jq -r .id)
+                  ### Generating ACS Policy
+                  echo "Generating Signature Image Policy"
+                  curl -k -s https://$CENTRAL_URL/v1/policies/import \
+                      -H "authorization: Bearer $ROX_API_TOKEN" \
+                      -H 'accept-language: es-419,es;q=0.9,en;q=0.8' \
+                      -H 'content-type: application/json' \
+                      --data-raw "{\"policies\":[{\"id\":\"c8fde2c3-980c-40e3-bc9d-6245b13ab81e\",\"name\":\"Trusted_Signature_Image_Policy\",\"description\":\"Alert on Images that have not been signed\",\"rationale\":\"rationale\",\"remediation\":\"All images should be signed by our cosign-demo signature\",\"disabled\":false,\"categories\":[\"Security Best Practices\"],\"lifecycleStages\":[\"BUILD\",\"DEPLOY\"],\"eventSource\":\"NOT_APPLICABLE\",\"exclusions\":[{\"name\":\"\",\"deployment\":{\"name\":\"\",\"scope\":{\"cluster\":\"\",\"namespace\":\"\",\"label\":{\"key\":\"app.kubernetes.io\",\"value\":\"integrations-acs\"}}},\"image\":null,\"expiration\":null}],\"scope\":[{\"cluster\":\"\",\"namespace\":\"demo-secure-images\",\"label\":null}],\"severity\":\"HIGH_SEVERITY\",\"enforcementActions\":[\"FAIL_BUILD_ENFORCEMENT\",\"SCALE_TO_ZERO_ENFORCEMENT\",\"UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT\"],\"notifiers\":[],\"lastUpdated\":\"2023-12-12T11:18:34.639367431Z\",\"SORTName\":\"\",\"SORTLifecycleStage\":\"\",\"SORTEnforcement\":false,\"policyVersion\":\"1.1\",\"policySections\":[{\"sectionName\":\"Policy Section 1\",\"policyGroups\":[{\"fieldName\":\"Image Signature Verified By\",\"booleanOperator\":\"OR\",\"negate\":false,\"values\":[{\"value\":\"$signature_id\"}]}]}],\"mitreAttackVectors\":[],\"criteriaLocked\":false,\"mitreVectorsLocked\":false,\"isDefault\":false}]}" \
+                      --insecure
+              }
+
+              # Step 4: Quay Integration with ACS and Pipeline
+              quay_integration() {
+                  ### Quay user and Repository creation
+                  echo "Checking if admin user exist"
+                  if oc get secrets -n registry quay-token 2> /dev/null; then
+                      echo "Secret already exists. using token"
+                      QUAY_TOKEN=$(oc get secret quay-token -n registry -o jsonpath='{.data.quay-token}' | base64 --decode)
+                  else
+                      # Create the secret if it doesn't exist
+                      echo "Secret doesn't exist. Creating it..."
+                      QUAY_TOKEN=$(curl -s -X POST -k https://$QUAY_ROUTE/api/v1/user/initialize --header 'Content-Type: application/json' --data '{ "username": "quayadmin", "password":"quaypass12345", "email": "quayadmin@example.com", "access_token": true}' | jq -r .access_token)
+                      oc create secret generic quay-token --from-literal=quay-token=$QUAY_TOKEN -n registry
+                  fi
+
+                  if [[ $(oc get secret regcred -n $NAMESPACE 2> /dev/null) ]]; then
+                      echo "Secret already exists"
+                  else
+                      ### Quay create repository
+                      echo -e " \n \n Step 4 Creating Repository"
+                      curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
+
+                      ### Create a robot account
+                      echo "creating robot account"
+                      robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration -H "Authorization: Bearer $QUAY_TOKEN")
+                      ROBOT_NAME=$(echo $robot_response | jq -r .name)
+                      ROBOT_TOKEN=$(echo $robot_response | jq -r .token)
+
+                      ### Robot Account Repository Permisons
+                      echo "Setting Permisons in Robot Account on demo repository"
+                      curl -s -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
+
+                      # Create the pull secret regcred if it doesn't exist
+                      echo "Secret doesn't exist. Creating it..."
+                      ### Generate pull secret
+                      echo "Creating pull secret"
+                      encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
+                      cat <<EOF > regcred.yaml
+                      apiVersion: v1
+                      kind: Secret
+                      metadata:
+                          name: regcred
+                          namespace: $NAMESPACE
+                      type: kubernetes.io/dockerconfigjson
+                      data:
+                          .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
+              EOF
+                      oc apply -f regcred.yaml
+                  fi
+              }
+
+              # Main execution
+              echo "Step 1 Imports"
+              step1_imports
+              echo -e " \n \n Generate rox token and secret"
+              generate_rox_secret
               echo " \n \n Step 3 Cosign Signature"
-              ## Creating Cosign Signature
-              ### Downloading cosig cli
-              echo "Downloading cosign cli"
-              curl -s -L -o cosign -k -s https://github.com/sigstore/cosign/releases/download/v1.13.2/cosign-linux-amd64
-              chmod +x ./cosign
-
-              ### Generating key pair secret
-              echo "Checking key if pair is createdt"
-
-              if ! oc get secrets -n $NAMESPACE cosign 2> /dev/null; then
-                echo "Secret doesn't exist. Creating it..."
-                ./cosign generate-key-pair k8s://$NAMESPACE/cosign
-              fi
-
-              echo -e " \n \n Step 3 ACS Integration"
-              ### Generating integration with ACS
-              echo "Generating integration with ACS"
-              export cosign_pub=$(oc get secret cosign -n demo-secure-images -o jsonpath='{.data.cosign\.pub}' | base64 --decode)
-              #### fix for send json with ub key
-              clean_cosign_pub="${cosign_pub//$'\n'/\\n}"
-              echo "generating signature integration"
-              policy_id=$(curl -s https://$CENTRAL_URL/v1/signatureintegrations -H "authorization: Bearer $token"   -H 'content-type: application/json'   --data-raw "{\"id\":\"\",\"name\":\"$COSIGN_NAME\",\"cosign\":{\"publicKeys\":[{\"name\":\"cosign-pub\",\"publicKeyPemEnc\":\"$clean_cosign_pub\"}]}}"   --insecure | jq -r .id )
-              ### Generating ACS Policy
-              echo "generating policy in ACS"
-              curl -k -s https://$CENTRAL_URL/v1/policies/import \
-              -H "authorization: Bearer $token" \
-              -H 'accept-language: es-419,es;q=0.9,en;q=0.8' \
-              -H 'content-type: application/json' \
-              --data-raw "{\"policies\":[{\"id\":\"c8fde2c3-980c-40e3-bc9d-6245b13ab81e\",\"name\":\"Trusted_Signature_Image_Policy\",\"description\":\"Alert on Images that have not been signed\",\"rationale\":\"rationale\",\"remediation\":\"All images should be signed by our cosign-demo signature\",\"disabled\":false,\"categories\":[\"Security Best Practices\"],\"lifecycleStages\":[\"BUILD\",\"DEPLOY\"],\"eventSource\":\"NOT_APPLICABLE\",\"exclusions\":[{\"name\":\"\",\"deployment\":{\"name\":\"\",\"scope\":{\"cluster\":\"\",\"namespace\":\"\",\"label\":{\"key\":\"app.kubernetes.io\",\"value\":\"integrations-acs\"}}},\"image\":null,\"expiration\":null}],\"scope\":[{\"cluster\":\"\",\"namespace\":\"demo-secure-images\",\"label\":null}],\"severity\":\"HIGH_SEVERITY\",\"enforcementActions\":[\"FAIL_BUILD_ENFORCEMENT\",\"SCALE_TO_ZERO_ENFORCEMENT\",\"UNSATISFIABLE_NODE_CONSTRAINT_ENFORCEMENT\"],\"notifiers\":[],\"lastUpdated\":\"2023-12-12T11:18:34.639367431Z\",\"SORTName\":\"\",\"SORTLifecycleStage\":\"\",\"SORTEnforcement\":false,\"policyVersion\":\"1.1\",\"policySections\":[{\"sectionName\":\"Policy Section 1\",\"policyGroups\":[{\"fieldName\":\"Image Signature Verified By\",\"booleanOperator\":\"OR\",\"negate\":false,\"values\":[{\"value\":\"io.stackrox.signatureintegration.16fe3b8f-2135-48a5-b27f-2d5268487c59\"}]}]}],\"mitreAttackVectors\":[],\"criteriaLocked\":false,\"mitreVectorsLocked\":false,\"isDefault\":false}]}" \
-              --insecure
-
-
-              ##Quay Integration with ACS and Pipeline
-              ### Quay user creation and Repository
-              echo -e " \n \n Step 3.5 Quay Integration with ACS and Pipeline"
-
-              export QUAY_ROUTE=$(oc get route quay-quay -n registry --template='{{.spec.host}}')
-              echo "checking if token secret exist"
-              if oc get secrets -n registry quay-token 2> /dev/null; then
-                echo "Secret already exists. using token"
-                export QUAY_TOKEN=$(oc get secret quay-token -n registry -o jsonpath='{.data.quay-token}' | base64 --decode ) 
-              else
-                # Create the secret if it doesn't exist
-                echo "Secret doesn't exist. Creating it..."
-                export QUAY_TOKEN=$(curl -s -X POST -k  https://$QUAY_ROUTE/api/v1/user/initialize --header 'Content-Type: application/json' --data '{ "username": "quayadmin", "password":"quaypass12345", "email": "quayadmin@example.com", "access_token": true}' | jq -r  .access_token) 
-                oc create secret generic quay-token --from-literal=quay-token=$QUAY_TOKEN -n registry
-              fi
-
-              ### Quay create repository
-              echo -e " \n \n Step 4 Creating Repository"
-              curl -s -X POST https://$QUAY_ROUTE/api/v1/repository -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' -d '{"namespace":"quayadmin", "repository":"demo-secure-images", "description":"desc", "visibility": "public"}'
-
-              ### Create a robot account
-              echo "creating robot account"
-              export robot_response=$(curl -s -k -X PUT https://$QUAY_ROUTE/api/v1/user/robots/acsintegration -H "Authorization: Bearer $QUAY_TOKEN")
-              export ROBOT_NAME=$(echo $robot_response | jq -r .name)
-              export ROBOT_TOKEN=$(echo $robot_response | jq -r .token)
-
-              ### Robot Account Repository Permisons
-              echo "Setting Permisons in Robot Account on repository"
-              curl -s -X PUT https://$QUAY_ROUTE/api/v1/repository/quayadmin/demo-secure-images/permissions/user/quayadmin+acsintegration -H "Authorization: Bearer $QUAY_TOKEN" -H 'Content-Type: application/json' --data-raw '{"role":"write"}'
-
-              # Create the secret regcred zif it doesn't exist
-              echo "Secret doesn't exist. Creating it..."
-              ### Generate pull secret
-              echo "Creating pull secret"
-              encoded_credentials=$(echo -n "$ROBOT_NAME:$ROBOT_TOKEN" | base64 -w 0)
-              cat <<EOF > regcred.yaml
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: regcred
-                namespace: $NAMESPACE
-              type: kubernetes.io/dockerconfigjson
-              data:
-                .dockerconfigjson: $(echo -n '{"auths":{"'"$QUAY_ROUTE"'": {"auth": "'"$encoded_credentials"'"}}}' | base64 -w 0)
-              EOF
-              oc apply -f regcred.yaml
-
+              generate_cosign_signature
+              echo -e " \n \n Step 4 signature and policy ACS Integration"
+              create_signature_and_policy_acs
+              echo -e " \n \n Step 5 Quay Integration with ACS and Pipeline"
+              quay_integration
               echo -e "\n \n DONE!"
           imagePullPolicy: Always
           name: integrations-acs
