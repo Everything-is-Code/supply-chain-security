@@ -5,11 +5,23 @@ Openshift GitOps should be installed, it can be installed using our [Repo](https
 
 Install all requiere tools using Gitops applying boostrap folder: 
  
-``` 
- oc apply -k ./bootstrrap 
+```
+ oc apply -k ./bootstrrap/argo
+```
+Wait until it is installed 
+```
+  oc apply -k ./bootstrrap 
+```
+after few mins it will install acm , acs, quay and tekton 
+
+
+TLDR: if no want to do the steps to make integrations you can run:
+ ```
+ oc apply -f ./bootstrrap/02_acs-integrations.yaml 
 ```
 
-after few mins it will install acm , acs, quay and tekton 
+it Run script to create accounts , integrations  , etc 
+
 
 
 ## Create token in ACS
