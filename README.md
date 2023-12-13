@@ -15,7 +15,7 @@ Wait until it is installed
 after few mins it will install acm , acs, quay and tekton 
 
 
-**TLDR: if no want to do the steps to make integrations you can run:**
+**TLDR: If you don't want to run the steps below you can run::**
  ```
  oc apply -f ./bootstrrap/02_acs-integrations.yaml 
 ```
