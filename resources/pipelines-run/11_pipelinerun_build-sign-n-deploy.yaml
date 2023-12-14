@@ -14,7 +14,7 @@ spec:
     - name: git-revision
       value: master
     - name: IMAGE
-      value: 'quay-registry-quay-quay-registry.apps.cluster-66r2w.66r2w.sandbox1946.opentlc.com/ilago/pipelines-vote-api:v1'
+      value: 'ChangeMe/quayadmin/pipelines-vote-api:v1'
     - name: namespace
       value: demo-secure-images
   pipelineRef:
