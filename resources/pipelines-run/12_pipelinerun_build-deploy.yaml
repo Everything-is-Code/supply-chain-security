@@ -16,7 +16,7 @@ spec:
       value: master
     - name: IMAGE
       value: >-
-        ChangeME/demo-secure-images:v2
+        ChangeME/quayadmin/demo-secure-images:v2
     - name: namespace
       value: demo-secure-images
   pipelineRef:
