@@ -3,7 +3,5 @@ kind: Kustomization
 commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 resources:
-- https://raw.githubusercontent.com/Everything-is-Code/openshift-gitops/main/resources/00-argocd-namespace.yaml
-- https://raw.githubusercontent.com/Everything-is-Code/openshift-gitops/main/resources/01-argocd-subscription.yaml
-- https://raw.githubusercontent.com/Everything-is-Code/openshift-gitops/main/resources/02-argocd-rbac.yaml
+- github.com/Everything-is-Code/openshift-gitops/resources?ref=main
 # - github.com/redhat-cop/gitops-catalog/web-terminal-operator/operator/overlays/fast?ref=main
