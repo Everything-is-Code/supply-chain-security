@@ -1,16 +1,47 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
+  annotations:
+    tekton.dev/pipelines.minVersion: 0.12.1
+    tekton.dev/tags: git
+  resourceVersion: '1593064'
   name: git-update-deployment
+  uid: 232bc72e-e117-4627-801d-a56abc7031e5
+  creationTimestamp: '2023-12-17T14:24:09Z'
+  generation: 2
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:tekton.dev/pipelines.minVersion': {}
+            'f:tekton.dev/tags': {}
+          'f:labels':
+            .: {}
+            'f:app.kubernetes.io/version': {}
+            'f:operator.tekton.dev/provider-type': {}
+        'f:spec':
+          .: {}
+          'f:description': {}
+          'f:params': {}
+          'f:results': {}
+          'f:steps': {}
+          'f:workspaces': {}
+      manager: Mozilla
+      operation: Update
+      time: '2023-12-17T14:35:33Z'
   namespace: demo-secure-images
+  labels:
+    app.kubernetes.io/version: '0.1'
+    operator.tekton.dev/provider-type: community
 spec:
   description: This Task can be used to update image digest in a Git repo using kustomize
   params:
     - name: GIT_REPOSITORY
       type: string
     - name: GIT_USERNAME
-      type: string
-    - name: GIT_PASSWORD
       type: string
     - name: CURRENT_IMAGE
       type: string
@@ -19,6 +50,9 @@ spec:
     - name: NEW_DIGEST
       type: string
     - name: KUSTOMIZATION_PATH
+      type: string
+    - description: Secret containing the Git Token
+      name: GIT_TOKEN
       type: string
   results:
     - description: The commit SHA
@@ -50,7 +84,13 @@ spec:
 
         cat kustomization.yaml
       workingDir: $(workspaces.workspace.path)
-    - image: 'docker.io/alpine/git:v2.26.2'
+    - env:
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: git-token
+              name: $(params.GIT_TOKEN)
+      image: 'docker.io/alpine/git:v2.26.2'
       name: git-commit
       resources: {}
       script: >
@@ -71,7 +111,7 @@ spec:
 
 
         git remote add auth-origin $(echo $(params.GIT_REPOSITORY) | sed -E
-        "s#http://(.*)#http://$(params.GIT_USERNAME):$(params.GIT_PASSWORD)@\1#g")
+        "s#http://(.*)#http://$(params.GIT_USERNAME):$(params.GIT_TOKEN)@\1#g")
 
         git push auth-origin master
 
@@ -89,6 +129,7 @@ spec:
         # Make sure we don't add a trailing newline to the result!
 
         echo -n "$RESULT_SHA" > $(results.commit.path)
-      workingDir: /workspace/source
+      workingDir: $(workspaces.workspace.path)
   workspaces:
-    - name: source
+    - description: The workspace consisting of maven project.
+      name: workspace

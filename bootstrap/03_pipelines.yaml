@@ -11,7 +11,7 @@ spec:
     server: https://kubernetes.default.svc
   project: supply-chain-security
   source:
-    path: resources/pipelines
+    path: resources/
     repoURL: https://github.com/Everything-is-Code/supply-chain-security.git
     targetRevision: main
   syncPolicy:

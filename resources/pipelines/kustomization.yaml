@@ -5,10 +5,6 @@ commonAnnotations:
 resources:
 - 00_namespace.yaml
 - 01_source-pvc.yaml
-- 03_apply-manifests.yaml
-- 04_cosign.yaml
-- 05_update-deployment.yaml
-- 06_check-image.yaml
-- 07_pipeline_build-n-deploy.yaml
-- 08_pipeline_build-sign-n-deploy.yaml
-- 10_service-account.yaml
+- 02_service-account.yaml
+- 03_pipeline_build-n-deploy.yaml
+- 04_pipeline_build-sign-n-deploy.yaml

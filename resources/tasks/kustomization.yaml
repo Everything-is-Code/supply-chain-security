@@ -3,6 +3,8 @@ kind: Kustomization
 commonAnnotations:
   argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 resources:
-- tasks
-- pipelines
-# - pipelinerun
+- 01_builddah.yaml
+- apply-manifests.yaml
+- 03_cosign.yaml
+- 04_check-image.yaml
+- 05_update-deployment.yaml
