@@ -8,3 +8,4 @@ resources:
 - 02_service-account.yaml
 - 03_pipeline_build-n-deploy.yaml
 - 04_pipeline_build-sign-n-deploy.yaml
+- 05_pipeline_build-n-sign-commit.yaml
